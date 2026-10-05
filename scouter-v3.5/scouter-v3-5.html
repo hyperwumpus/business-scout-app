@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scouter v3.5</title>
+<style>
+:root{
+  --graphite-950:#101316; --graphite-900:#161a1f; --graphite-850:#1b2026;
+  --graphite-800:#22282f; --graphite-700:#2d343d; --graphite-600:#3b444e;
+  --amber:#f2a93b; --lens:#0b3529; --lens-deep:#07251d;
+  --lime:#b8f53d; --orange:#ff8c1a; --gold:#ffc93c;
+  --purple:#9d7bff; --red:#ef4444;
+  --housing:#f2efe4; --housing-dim:#e2ddcb; --ink:#1b1e22;
+  --paper:#ece7d6; --muted:#9aa3ad; --muted-green:#8fb3a4;
+  --line:rgba(242,169,59,.22); --line-soft:rgba(255,255,255,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+  background:linear-gradient(180deg,var(--lens) 0%,var(--lens-deep) 100%);
+  background-attachment:fixed;color:var(--paper);min-height:100vh;padding:14px}
+.mono{font-family:ui-monospace,Menlo,monospace}
+.housing{background:linear-gradient(180deg,var(--housing),var(--housing-dim));
+  color:var(--ink);border-radius:16px;padding:10px 16px;display:flex;
+  align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:10px;z-index:50;
+  box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.visor-mark{width:42px;height:42px;flex:0 0 42px;border-radius:12px;
+  background:conic-gradient(from 200deg,var(--lens),var(--graphite-900),var(--lens));
+  display:flex;align-items:center;justify-content:center;position:relative}
+.visor-mark::after{content:"";width:22px;height:10px;border-radius:6px;
+  background:linear-gradient(90deg,var(--lime),var(--gold));box-shadow:0 0 10px var(--lime)}
+.brand h1{font-size:19px;letter-spacing:2px}
+.brand small{display:block;font-size:11px;color:#5b5a4e;font-weight:600;letter-spacing:1px}
+.brand small .hw{color:#6d28d9;font-weight:700}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap}
+nav.tabs button{font:inherit;font-weight:600;font-size:13px;background:transparent;
+  border:2px solid transparent;color:#3c3a30;padding:8px 12px;border-radius:10px;cursor:pointer}
+nav.tabs button:hover{background:rgba(0,0,0,.06)}
+nav.tabs button.active{background:var(--ink);color:var(--lime)}
+.spacer{flex:1}
+.hbtn{font:inherit;font-size:12px;font-weight:700;cursor:pointer;border:2px solid var(--ink);
+  background:#fff;color:var(--ink);padding:7px 12px;border-radius:10px}
+.hbtn:hover{background:var(--ink);color:var(--lime)}
+.hbtn.primary{background:var(--orange);border-color:#7a3c00;color:#241100}
+.loopbar{margin:12px 0;background:rgba(7,37,29,.75);border:1px solid var(--line);
+  border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.loopbar .loop-label{font-size:11px;letter-spacing:2px;color:var(--muted-green);font-weight:700;margin-right:8px}
+.step{font:inherit;font-size:12.5px;font-weight:600;color:var(--paper);background:transparent;
+  border:1px solid transparent;padding:6px 8px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.step:hover{border-color:var(--lime);color:var(--lime)}
+.step .n{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--graphite-700);
+  color:var(--gold);font-size:11px;align-items:center;justify-content:center;margin-right:6px}
+.step.on .n{background:var(--lime);color:#0b2a1f}
+.step-arrow{color:var(--amber);font-size:12px;opacity:.6}
+.workspace{max-width:1280px;margin:0 auto}
+.panel{background:linear-gradient(180deg,var(--graphite-850),var(--graphite-900));
+  border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+.panel h2{font-size:16px;letter-spacing:1.5px;color:var(--gold);margin-bottom:4px}
+.panel .sub{font-size:12.5px;color:var(--muted);margin-bottom:14px;max-width:75ch}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.kanban{display:grid;grid-template-columns:repeat(5,minmax(215px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px}
+.kcol{background:rgba(7,37,29,.55);border:1px solid var(--line-soft);border-radius:12px;padding:10px;min-height:220px}
+.kcol.flash{border-color:var(--lime);box-shadow:0 0 0 2px var(--lime)}
+.kcol h3{font-size:12px;letter-spacing:1.5px;color:var(--amber);margin-bottom:2px}
+.kcol .count{font-size:11px;color:var(--muted-green);margin-bottom:10px;font-family:ui-monospace,monospace}
+.tcard{background:linear-gradient(180deg,var(--graphite-800),var(--graphite-900));
+  border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer}
+.tcard:hover{border-color:var(--lime)}
+.tcard .nm{font-weight:700;font-size:14px}
+.tcard .cat{font-size:11px;color:var(--muted)}
+.tcard .row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;flex-wrap:wrap}
+.score-pill{font-family:ui-monospace,monospace;font-size:12px;font-weight:600;background:#0a0d10;
+  border:1px solid var(--amber);color:var(--gold);padding:4px 10px;border-radius:20px}
+.pursue{font-size:10px;font-weight:700;letter-spacing:1px;padding:4px 8px;border-radius:6px}
+.pursue.pursue-y{background:rgba(184,245,61,.14);color:var(--lime);border:1px solid var(--lime)}
+.pursue.park-y{background:rgba(255,201,60,.14);color:var(--gold);border:1px solid var(--gold)}
+.pursue.drop-y{background:rgba(239,68,68,.12);color:#ff9b9b;border:1px solid var(--red)}
+.pursue.undecided{background:rgba(154,163,173,.12);color:var(--muted);border:1px solid var(--muted)}
+.follow{font-size:11px;color:var(--orange);font-weight:600}
+label{display:block;font-size:11px;letter-spacing:1.5px;color:var(--muted-green);font-weight:700;margin:12px 0 5px}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;font:inherit;font-size:14px;
+  color:var(--paper);background:#0d1114;border:1px solid var(--graphite-600);border-radius:8px;padding:9px 11px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--lime)}
+textarea{min-height:70px;resize:vertical}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){.frow{grid-template-columns:1fr}}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.warn{background:rgba(239,68,68,.1);border:1px solid var(--red);color:#ffb4b4;border-radius:8px;
+  padding:10px 12px;font-size:13px;margin-top:10px;display:none}
+.warn.show{display:block}
+.oknote{background:rgba(184,245,61,.08);border:1px solid var(--lime);color:var(--lime);
+  border-radius:8px;padding:10px 12px;font-size:13px;margin-top:10px}
+.btn{font:inherit;font-weight:700;font-size:13px;cursor:pointer;border-radius:10px;padding:10px 16px;border:2px solid transparent}
+.btn.primary{background:linear-gradient(180deg,var(--gold),var(--orange));color:#2a1500}
+.btn.ghost{background:transparent;border-color:var(--graphite-600);color:var(--paper)}
+.btn.ghost:hover{border-color:var(--lime);color:var(--lime)}
+.btn.lime{background:var(--lime);color:#0d281f}
+.btn.danger{background:transparent;border-color:var(--red);color:#ff9b9b}
+.btn.danger:hover{background:var(--red);color:#fff}
+.btn.sm{padding:6px 10px;font-size:12px}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.detail-head{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.detail-head .info{flex:1;min-width:240px}
+.detail-head h2{font-size:22px;letter-spacing:.5px}
+.factgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:12px 0}
+.fact{background:#0d1114;border:1px solid var(--line-soft);border-radius:8px;padding:8px 10px;font-size:12.5px}
+.fact .k{font-size:10px;letter-spacing:1.5px;color:var(--muted-green);font-weight:700}
+.fact .v{margin-top:2px;word-break:break-word}
+.scorebox{display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#0a0e11;
+  border:1px solid var(--amber);border-radius:12px;padding:14px;margin:12px 0}
+.score-total{font-family:ui-monospace,monospace;font-size:32px;font-weight:600;color:var(--gold)}
+.score-total small{font-size:14px;color:var(--muted)}
+.cov{font-size:12px;color:var(--muted-green)}
+.spart{display:grid;grid-template-columns:1fr auto;gap:4px 12px;background:rgba(255,255,255,.02);
+  border:1px solid var(--line-soft);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:12.5px}
+.spart .pts{font-family:ui-monospace,monospace;color:var(--gold);font-weight:600}
+.spart .ev{grid-column:1/-1;color:var(--muted);font-size:11.5px}
+.spart.gap{border-style:dashed}
+.honesty{font-size:12px;color:var(--muted);border-left:3px solid var(--amber);padding:6px 10px;margin-top:10px;max-width:75ch}
+.evsec{border-radius:10px;padding:12px;margin-top:10px}
+.evsec.public{background:rgba(255,201,60,.05);border:1px solid rgba(255,201,60,.3)}
+.evsec.owner{background:rgba(157,123,255,.06);border:1px solid rgba(157,123,255,.35)}
+.evsec h4{font-size:12px;letter-spacing:1.5px;margin-bottom:8px}
+.evsec.public h4{color:var(--gold)}
+.evsec.owner h4{color:var(--purple)}
+.evitem{display:flex;gap:10px;align-items:flex-start;background:#0d1114;border:1px solid var(--line-soft);
+  border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:13px}
+.evitem .txt{flex:1}
+.evitem .src{font-size:11px;color:var(--muted);margin-top:3px}
+.etype{font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:6px;flex:0 0 auto;margin-top:2px}
+.etype.fact{background:rgba(184,245,61,.15);color:var(--lime);border:1px solid var(--lime)}
+.etype.signal{background:rgba(255,201,60,.15);color:var(--gold);border:1px solid var(--gold)}
+.etype.hypothesis{background:rgba(157,123,255,.15);color:var(--purple);border:1px solid var(--purple)}
+.etype.unknown{background:transparent;color:var(--muted);border:1px dashed var(--muted)}
+.x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1}
+.x:hover{color:var(--red)}
+.pursuit-btns{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.draft{background:#0d1114;border:1px solid var(--line-soft);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.draft .body{white-space:pre-wrap;font-size:13.5px;margin:6px 0}
+.st{font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:6px}
+.st.draft{background:rgba(154,163,173,.15);color:var(--muted);border:1px solid var(--muted)}
+.st.reviewed{background:rgba(255,201,60,.15);color:var(--gold);border:1px solid var(--gold)}
+.st.sent{background:rgba(184,245,61,.15);color:var(--lime);border:1px solid var(--lime)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+th{font-size:10.5px;letter-spacing:1.5px;color:var(--muted-green);text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+.num{font-family:ui-monospace,monospace;text-align:right}
+.tot{font-family:ui-monospace,monospace;font-weight:600;color:var(--gold)}
+.divider{height:1px;background:var(--line-soft);margin:16px 0}
+.secttl{font-size:13px;letter-spacing:2px;color:var(--amber);font-weight:700;margin:22px 0 6px}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px dashed var(--line-soft);gap:12px}
+.kv b{font-family:ui-monospace,monospace;color:var(--gold)}
+.roadmap{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.rmchip{font-size:11px;letter-spacing:1px;font-weight:700;color:var(--muted);
+  border:1px dashed var(--graphite-600);border-radius:20px;padding:6px 12px}
+.footer{margin:26px 0 10px;text-align:center;font-size:11px;color:var(--muted-green);letter-spacing:1px}
+.footer .hw{color:var(--purple);font-weight:700}
+.hidden{display:none!important}
+.seedtag{font-size:10px;letter-spacing:1px;color:var(--purple);border:1px solid var(--purple);
+  border-radius:6px;padding:2px 8px;font-weight:700}
+.qline{display:grid;grid-template-columns:1fr 110px 34px;gap:8px;margin-bottom:8px;align-items:center}
+</style>
+</head>
+<body>
+<div class="housing">
+  <div class="visor-mark"></div>
+  <div class="brand">
+    <h1>SCOUTER <span style="color:#7a5c14">v3.5</span></h1>
+    <small>VISOR BUILD &middot; <span class="hw">HyperWumpus</span></small>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="spacer"></div>
+  <button class="hbtn primary" onclick="exportJSON()">EXPORT BACKUP</button>
+  <button class="hbtn" onclick="document.getElementById('importFile').click()">IMPORT</button>
+  <input type="file" id="importFile" accept="application/json" class="hidden" onchange="importJSON(this)">
+</div>
+<div class="loopbar" id="loopbar"></div>
+<div class="workspace" id="app"></div>
+<div class="footer">SCOUTER v3.5 &middot; LOCAL-FIRST &middot; NOTHING LEAVES THIS BROWSER EXCEPT YOUR OWN BACKUPS &middot; <span class="hw">HyperWumpus</span></div>
+<script>
+"use strict";
+/* ================= UTILITIES ================= */
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function uid(){ return "id"+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function money(n){ n=Number(n)||0; return "$"+n.toLocaleString("en-US",{maximumFractionDigits:0}); }
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+var LS_KEY="scouter35_v1";
+
+/* ================= SEED DATA ================= */
+function seedState(){
+  return {
+    version:"3.5",
+    settings:{
+      offers:[
+        {id:"offer-web-content", name:"Website + Content Launch", description:"Service website + inquiry flow + launch content package for a local shop.", price:1250, priceNote:"Flat package"},
+        {id:"offer-tourist-home", name:"Tourist-to-Home Pilot", description:"Turn tourist foot traffic into online orders / repeat customers.", price:750, priceNote:"Pilot range $500\u2013$1,000"},
+        {id:"offer-contractor", name:"Contractor job (tiling)", description:"Per-job contracting for tiling work.", price:1500, priceNote:"Typical range $1,500\u2013$3,000 per job"}
+      ],
+      weights:{ website:50, rating:20, reviews:20, phone:10 },
+      apiKeys:{ places:"", youtube:"", openai:"" },
+      baseline:{ leadsTouched:10, responses:1, timeSpentMin:300 },
+      categorySuggestions:["Auto Repair","Restaurant","Candy store","Electrician","Plumber","Salon / Barbershop","Gym / Fitness","Boutique / Retail","Tile contractor","Painter","Landscaper","Cafe / Coffee"]
+    },
+    leads:[
+      {
+        id:"seed-yellowstone", seed:true, name:"Yellowstone Candy Co.", category:"Candy store",
+        placeId:"", website:"", rating:2.9, reviewCount:null, phone:"", city:"Rexburg, ID",
+        notes:"Pitched in person. Owner interested in social-media pricing/packages. Follow-up going cold \u2014 re-engage this week.",
+        stage:"outreach", pursuit:"pursue", followUpDate:"2026-10-08",
+        dropCondition:"Drop if the owner explicitly declines the Website + Content Launch package after two follow-ups, or no reply 21 days after the quote was sent.",
+        counterEvidence:"",
+        offerId:"offer-web-content", offerPrice:1250,
+        evidence:[
+          {id:"ev-y1", type:"signal", field:"rating", section:"public", text:"Yelp rating 2.9 \u2014 below the 3.5 bar where reviews start helping", source:"Yelp listing", date:"2026-10-05"},
+          {id:"ev-y2", type:"signal", field:null, section:"public", text:"Instagram account exists but looks ignored \u2014 no recent posts", source:"Instagram", date:"2026-10-05"},
+          {id:"ev-y3", type:"unknown", field:"website", section:"public", text:"Whether they have any website at all \u2014 not verified", source:"", date:"2026-10-05"},
+          {id:"ev-y4", type:"fact", field:null, section:"owner", text:"Pitched in person; owner asked for social-media pricing/packages", source:"In-person conversation", date:"2026-10-01"},
+          {id:"ev-y5", type:"fact", field:null, section:"owner", text:"$1,250 Website + Content Launch quote sent \u2014 awaiting follow-up", source:"Quote record", date:"2026-10-05"}
+        ],
+        outreach:[
+          {id:"dr-y1", status:"sent", createdAt:"2026-10-05",
+           body:"Hi \u2014 I'm Wumpus, a Rexburg-based web designer. I stopped by your store and noticed your Instagram hasn't been updated in a while. I put together a $1,250 Website + Content Launch package built for local shops like yours \u2014 happy to walk you through it, no pressure either way.\n\n\u2014 Wumpus"}
+        ],
+        quotes:[
+          {id:"q-y1", title:"Website + Content Launch", status:"sent", createdAt:"2026-10-05",
+           items:[{desc:"Service website + inquiry flow", amount:750},{desc:"Content launch package", amount:500}]}
+        ],
+        payments:[], expenses:[],
+        episodes:[{id:"ep-y1", title:"Wumpus Fixes It \u2014 Yellowstone Candy Co.", status:"idea", note:"Tourist-to-Home pilot tie-in"}],
+        activity:[
+          {id:"ac-y1", date:"2026-10-05", action:"In-person pitch", timeSpentMin:45, friction:"Low \u2014 owner engaged, asked for pricing", note:"Follow-up going cold; re-engage this week."}
+        ]
+      },
+      {
+        id:"seed-leishman", seed:true, name:"Leishman Electric", category:"Electrician",
+        placeId:"", website:"", rating:null, reviewCount:null, phone:"", city:"Rexburg, ID",
+        notes:"Qualified Scouter lead. Early stage \u2014 research before any outreach.",
+        stage:"discover", pursuit:"undecided", followUpDate:"",
+        dropCondition:"", counterEvidence:"",
+        offerId:"", offerPrice:0,
+        evidence:[
+          {id:"ev-l1", type:"hypothesis", field:null, section:"public", text:"May need website / online-presence help \u2014 unverified, research first", source:"", date:"2026-10-05"},
+          {id:"ev-l2", type:"unknown", field:"website", section:"public", text:"Website presence not checked yet", source:"", date:"2026-10-05"}
+        ],
+        outreach:[], quotes:[], payments:[], expenses:[], episodes:[],
+        activity:[]
+      },
+      {
+        id:"seed-tiling", seed:true, name:"Brother's tiling business", category:"Tile contractor",
+        placeId:"", website:"", rating:null, reviewCount:null, phone:"", city:"",
+        notes:"Contractor mode: $1,500\u2013$3,000 per job. Family connection \u2014 keep it professional.",
+        stage:"offer", pursuit:"pursue", followUpDate:"",
+        dropCondition:"Drop if no paying job materializes after 3 quoted jobs.", counterEvidence:"",
+        offerId:"offer-contractor", offerPrice:1500,
+        evidence:[
+          {id:"ev-t1", type:"fact", field:null, section:"owner", text:"Contractor mode agreed: $1,500\u2013$3,000 per job", source:"Family conversation", date:"2026-10-01"},
+          {id:"ev-t2", type:"unknown", field:"website", section:"public", text:"Online presence not assessed yet", source:"", date:"2026-10-05"}
+        ],
+        outreach:[], quotes:[], payments:[], expenses:[], episodes:[],
+        activity:[]
+      }
+    ]
+  };
+}
+
+/* ================= STORE ================= */
+var DB={
+  state:null,
+  load:function(){
+    try{ var raw=localStorage.getItem(LS_KEY); if(raw){ this.state=JSON.parse(raw); return; } }catch(e){}
+    this.state=seedState(); this.save();
+  },
+  save:function(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(this.state)); }catch(e){} },
+  reset:function(){ this.state=seedState(); this.save(); }
+};
+function S(){ return DB.state; }
+function getLead(id){ return S().leads.find(function(l){return l.id===id;}); }
+function getOffer(id){ return S().settings.offers.find(function(o){return o.id===id;}); }
+
+/* ================= EXPLAINED OPPORTUNITY SCORE ================= */
+/* Deterministic starting weights = a calibration hypothesis, not truth. */
+function computeScore(lead){
+  var w=S().settings.weights;
+  var parts=[];
+  function evFor(field){
+    var evs=(lead.evidence||[]).filter(function(e){return e.field===field;});
+    var order={fact:0,signal:1,hypothesis:2,unknown:3};
+    evs.sort(function(a,b){return (order[a.type]==null?9:order[a.type])-(order[b.type]==null?9:order[b.type]);});
+    return evs[0]||null;
+  }
+  // 1. Website not listed in Places
+  var hasSite=(lead.website||"").trim()!=="";
+  parts.push({
+    key:"website", label:"Website not listed in Places",
+    points: hasSite?0:w.website, max:w.website,
+    valueText: hasSite?("Listed: "+lead.website):"No website recorded",
+    gap:false, ev:evFor("website"),
+    note:"Observed, not proven absent."
+  });
+  // 2. Customer rating
+  var r=lead.rating;
+  if(r==null||r===""){
+    parts.push({key:"rating",label:"Customer rating",points:0,max:w.rating,valueText:"Unknown",gap:true,ev:evFor("rating"),note:"Unknown \u2014 not a confirmed gap."});
+  }else{
+    r=Number(r);
+    var pts=r<3.5?w.rating:(r<=4.2?Math.round(w.rating/2):0);
+    parts.push({key:"rating",label:"Customer rating",points:pts,max:w.rating,valueText:String(r)+" / 5",gap:false,ev:evFor("rating"),note:"Lower rating = more room to help."});
+  }
+  // 3. Review volume
+  var rv=lead.reviewCount;
+  if(rv==null||rv===""){
+    parts.push({key:"reviews",label:"Review volume",points:0,max:w.reviews,valueText:"Unknown",gap:true,ev:evFor("reviews"),note:"Unknown \u2014 not a confirmed gap."});
+  }else{
+    rv=Number(rv);
+    var p2=rv<10?w.reviews:(rv<=50?Math.round(w.reviews/2):0);
+    parts.push({key:"reviews",label:"Review volume",points:p2,max:w.reviews,valueText:String(rv)+" reviews",gap:false,ev:evFor("reviews"),note:"Few reviews = visibility opportunity."});
+  }
+  // 4. Phone available
+  var hasPhone=(lead.phone||"").trim()!=="";
+  parts.push({
+    key:"phone", label:"Phone available (you can reach them)",
+    points: hasPhone?w.phone:0, max:w.phone,
+    valueText: hasPhone?lead.phone:"No phone recorded",
+    gap:!hasPhone, ev:evFor("phone"),
+    note:"Contact path = actionable."
+  });
+  var total=parts.reduce(function(a,p){return a+p.points;},0);
+  var max=parts.reduce(function(a,p){return a+p.max;},0);
+  var gaps=parts.filter(function(p){return p.gap;}).length;
+  return {parts:parts,total:total,max:max,gaps:gaps,observed:parts.length-gaps};
+}
+/* ================= ROUTER / CHROME ================= */
+var UI={ view:"pipeline", leadId:null, flashStage:null };
+var STAGES=[
+  {id:"discover", label:"Discover"},
+  {id:"understand", label:"Understand"},
+  {id:"offer", label:"Choose offer"},
+  {id:"outreach", label:"Draft outreach"},
+  {id:"track", label:"Track outcome"}
+];
+var TABS=[
+  {id:"pipeline", label:"PIPELINE"},
+  {id:"discover", label:"DISCOVER"},
+  {id:"day7", label:"DAY-7 REVIEW"},
+  {id:"money", label:"MONEY"},
+  {id:"settings", label:"SETTINGS"}
+];
+var LOOP=[
+  {n:1, label:"Discover", go:"discover"},
+  {n:2, label:"Understand", stage:"understand"},
+  {n:3, label:"Choose offer", stage:"offer"},
+  {n:4, label:"Save", stage:"discover"},
+  {n:5, label:"Draft outreach", stage:"outreach"},
+  {n:6, label:"Track outcome", go:"money"}
+];
+function go(view,arg){
+  if(view==="lead"){ UI.view="lead"; UI.leadId=arg; }
+  else{ UI.view=view; UI.leadId=null; }
+  render();
+}
+function goStage(stage){
+  UI.view="pipeline"; UI.flashStage=stage; UI.leadId=null; render();
+  setTimeout(function(){ UI.flashStage=null; var el=document.querySelector('[data-col="'+stage+'"]');
+    if(el) el.classList.remove("flash"); },1600);
+}
+function renderTabs(){
+  document.getElementById("tabs").innerHTML=TABS.map(function(t){
+    return '<button class="'+(UI.view===t.id||(UI.view==="lead"&&t.id==="pipeline")?"active":"")+'" onclick="go(\''+t.id+'\')">'+t.label+'</button>';
+  }).join("");
+}
+function renderLoop(){
+  document.getElementById("loopbar").innerHTML=
+    '<span class="loop-label">CORE LOOP</span>'+
+    LOOP.map(function(s,i){
+      var act=s.go?("go('"+s.go+"')"):("goStage('"+s.stage+"')");
+      var on=(UI.view==="pipeline"&&UI.flashStage===s.stage)?" on":"";
+      return (i>0?'<span class="step-arrow">\u25b6</span>':"")+
+        '<button class="step'+on+'" onclick="'+act+'"><span class="n">'+s.n+'</span>'+s.label+'</button>';
+    }).join("");
+}
+function render(){
+  renderTabs(); renderLoop();
+  var el=document.getElementById("app");
+  if(UI.view==="pipeline") el.innerHTML=viewPipeline();
+  else if(UI.view==="discover") el.innerHTML=viewDiscover();
+  else if(UI.view==="lead") el.innerHTML=viewLead(UI.leadId);
+  else if(UI.view==="day7") el.innerHTML=viewDay7();
+  else if(UI.view==="money") el.innerHTML=viewMoney();
+  else if(UI.view==="settings") el.innerHTML=viewSettings();
+  window.scrollTo(0,0);
+  if(UI.flashStage){ var c=document.querySelector('[data-col="'+UI.flashStage+'"]'); if(c) c.classList.add("flash"); }
+}
+
+/* ================= PIPELINE ================= */
+function stageLabel(id){ var s=STAGES.find(function(x){return x.id===id;}); return s?s.label:id; }
+function pursuitBadge(l){
+  var map={"pursue":["pursue-y","PURSUE"],"park":["park-y","PARKED"],"drop":["drop-y","DROPPED"],"undecided":["undecided","UNDECIDED"]};
+  var m=map[l.pursuit]||map.undecided;
+  return '<span class="pursue '+m[0]+'">'+m[1]+'</span>';
+}
+function leadCardMini(l){
+  var sc=computeScore(l);
+  var f=l.followUpDate?('<div class="follow">Follow up: '+esc(l.followUpDate)+'</div>'):"";
+  return '<div class="tcard" onclick="go(\'lead\',\''+l.id+'\')">'+
+    '<div class="nm">'+esc(l.name)+'</div>'+
+    '<div class="cat">'+esc(l.category||"Uncategorized")+'</div>'+
+    '<div class="row"><span class="score-pill">'+sc.total+'/'+sc.max+'</span>'+pursuitBadge(l)+'</div>'+f+
+    '</div>';
+}
+function viewPipeline(){
+  var cols=STAGES.map(function(st){
+    var leads=S().leads.filter(function(l){return l.stage===st.id;});
+    return '<div class="kcol" data-col="'+st.id+'"><h3>'+st.label.toUpperCase()+'</h3>'+
+      '<div class="count">'+leads.length+' lead'+(leads.length===1?"":"s")+'</div>'+
+      leads.map(leadCardMini).join("")+
+      (leads.length?"":'<div class="hint">Nothing here yet.</div>')+'</div>';
+  }).join("");
+  return '<div class="panel"><h2>PIPELINE</h2>'+
+    '<div class="sub">Every lead moves Discover \u2192 Understand \u2192 Choose offer \u2192 Draft outreach \u2192 Track outcome. Click a card to open its Target Card.</div>'+
+    '<div class="kanban">'+cols+'</div>'+
+    '<div class="btnrow"><button class="btn primary" onclick="go(\'discover\')">+ ADD A LEAD (DISCOVER)</button></div></div>';
+}
+
+/* ================= DISCOVER ================= */
+function viewDiscover(){
+  var cats=S().settings.categorySuggestions;
+  var opts=cats.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join("");
+  return '<div class="panel"><h2>DISCOVER \u2014 ADD A LEAD</h2>'+
+  '<div class="sub">Capture everything up front: <b>Place ID, website URL, rating, and review count travel with the lead into the pipeline</b> \u2014 nothing gets discarded at intake. Nothing here contacts anyone; this is research only.</div>'+
+  '<div class="grid2"><div>'+
+  '<label>BUSINESS NAME *</label><input type="text" id="f-name" placeholder="e.g. Rexburg Bike Shop">'+
+  '<label>CATEGORY</label><select id="f-category"><option value="">\u2014 pick or type custom below \u2014</option>'+opts+'<option value="__custom">Custom\u2026</option></select>'+
+  '<div id="customCatWrap" class="hidden"><label>CUSTOM CATEGORY</label><input type="text" id="f-category-custom" placeholder="Type your own category"></div>'+
+  '<div class="frow"><div><label>CITY</label><input type="text" id="f-city" placeholder="Rexburg, ID"></div>'+
+  '<div><label>PLACE ID</label><input type="text" id="f-placeid" class="mono" placeholder="Google Place ID" oninput="checkDedup()"></div></div>'+
+  '<div class="warn" id="dedupWarn"></div>'+
+  '<div class="oknote hidden" id="dedupOk">No existing lead uses this Place ID.</div>'+
+  '</div><div>'+
+  '<label>WEBSITE URL</label><input type="text" id="f-website" class="mono" placeholder="https://\u2026 (leave blank if none found)">'+
+  '<div class="frow"><div><label>RATING (0\u20135)</label><input type="number" id="f-rating" min="0" max="5" step="0.1" placeholder="e.g. 2.9"></div>'+
+  '<div><label>REVIEW COUNT</label><input type="number" id="f-reviews" min="0" step="1" placeholder="e.g. 34"></div></div>'+
+  '<label>PHONE</label><input type="text" id="f-phone" class="mono" placeholder="(optional)">'+
+  '<label>NOTES</label><textarea id="f-notes" placeholder="What did you observe? Where from?"></textarea>'+
+  '</div></div>'+
+  '<div class="honesty">Epistemic rule: <b>"not listed on Google" is an observation, not proof that no website exists.</b> A failed lookup means <b>unknown</b> \u2014 never a confirmed gap. Leave fields blank rather than guessing.</div>'+
+  '<div class="btnrow"><button class="btn primary" onclick="saveLead()">SAVE LEAD \u2192 UNDERSTAND</button>'+
+  '<button class="btn ghost" onclick="go(\'pipeline\')">CANCEL</button></div></div>';
+}
+function onCategoryChange(){
+  var sel=document.getElementById("f-category");
+  document.getElementById("customCatWrap").classList.toggle("hidden", sel.value!=="__custom");
+}
+function checkDedup(){
+  var pid=document.getElementById("f-placeid").value.trim();
+  var warn=document.getElementById("dedupWarn"), ok=document.getElementById("dedupOk");
+  warn.classList.remove("show"); ok.classList.add("hidden");
+  if(!pid) return;
+  var dup=S().leads.find(function(l){return (l.placeId||"").trim()===pid;});
+  if(dup){
+    warn.innerHTML="<b>Duplicate Place ID.</b> This business is already tracked as <b>"+esc(dup.name)+"</b> ("+stageLabel(dup.stage)+"). Not saved twice.";
+    warn.classList.add("show");
+  }else{ ok.classList.remove("hidden"); }
+}
+function saveLead(){
+  var name=document.getElementById("f-name").value.trim();
+  if(!name){ alert("Business name is required."); return; }
+  var pid=document.getElementById("f-placeid").value.trim();
+  if(pid){
+    var dup=S().leads.find(function(l){return (l.placeId||"").trim()===pid;});
+    if(dup){ alert("Duplicate Place ID \u2014 this business is already tracked as "+dup.name+"."); return; }
+  }
+  var catSel=document.getElementById("f-category").value;
+  var category=catSel==="__custom"?document.getElementById("f-category-custom").value.trim():(catSel||"");
+  function num(id){ var v=document.getElementById(id).value.trim(); return v===""?null:Number(v); }
+  var lead={
+    id:uid(), seed:false, name:name, category:category,
+    placeId:pid, website:document.getElementById("f-website").value.trim(),
+    rating:num("f-rating"), reviewCount:num("f-reviews"),
+    phone:document.getElementById("f-phone").value.trim(),
+    city:document.getElementById("f-city").value.trim(),
+    notes:document.getElementById("f-notes").value.trim(),
+    stage:"understand", pursuit:"undecided", followUpDate:"",
+    dropCondition:"", counterEvidence:"", offerId:"", offerPrice:0,
+    evidence:[], outreach:[], quotes:[], payments:[], expenses:[], episodes:[], activity:[]
+  };
+  // seed epistemic unknowns so the score shows coverage honestly
+  if(!lead.website) lead.evidence.push({id:uid(),type:"unknown",field:"website",section:"public",text:"Website presence not checked yet",source:"",date:today()});
+  if(lead.rating==null) lead.evidence.push({id:uid(),type:"unknown",field:"rating",section:"public",text:"Rating not checked yet",source:"",date:today()});
+  if(lead.reviewCount==null) lead.evidence.push({id:uid(),type:"unknown",field:"reviews",section:"public",text:"Review volume not checked yet",source:"",date:today()});
+  S().leads.push(lead); DB.save(); go("lead",lead.id);
+}
+document.addEventListener("change",function(e){ if(e.target&&e.target.id==="f-category") onCategoryChange(); });
+/* ================= TARGET CARD (DETAIL) ================= */
+function viewLead(id){
+  var l=getLead(id);
+  if(!l) return '<div class="panel"><h2>LEAD NOT FOUND</h2><div class="btnrow"><button class="btn ghost" onclick="go(\'pipeline\')">BACK TO PIPELINE</button></div></div>';
+  var sc=computeScore(l);
+  var offer=l.offerId?getOffer(l.offerId):null;
+  return '<div class="panel">'+
+  '<div class="btnrow" style="margin:0 0 12px"><button class="btn ghost sm" onclick="go(\'pipeline\')">\u2190 PIPELINE</button>'+
+  (l.seed?'<span class="seedtag">SEED EXAMPLE \u2014 EDIT OR DELETE FREELY</span>':"")+'</div>'+
+  '<div class="detail-head"><div class="info">'+
+    '<h2>'+esc(l.name)+'</h2>'+
+    '<div class="cat" style="color:var(--muted);font-size:13px">'+esc(l.category||"Uncategorized")+(l.city?" \u00b7 "+esc(l.city):"")+'</div>'+
+    '<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+pursuitBadge(l)+
+    '<span class="score-pill">'+sc.total+'/'+sc.max+' opportunity</span>'+
+    (l.followUpDate?'<span class="follow">Follow up: '+esc(l.followUpDate)+'</span>':"")+'</div>'+
+  '</div>'+
+  '<div><label style="margin-top:0">STAGE</label><select id="stageSel" onchange="setStage(\''+l.id+'\',this.value)" style="min-width:180px">'+
+    STAGES.map(function(s){return '<option value="'+s.id+'"'+(l.stage===s.id?" selected":"")+'>'+s.label+'</option>';}).join("")+
+  '</select><div class="btnrow"><button class="btn ghost sm" onclick="advanceStage(\''+l.id+'\')">ADVANCE \u2192</button></div></div></div>'+
+
+  '<div class="factgrid">'+
+    fact("PLACE ID", l.placeId||"\u2014", true)+
+    fact("WEBSITE", l.website?('<a href="'+esc(l.website)+'" target="_blank" rel="noopener">'+esc(l.website)+'</a>'):"Not recorded")+
+    fact("RATING", l.rating==null?"Unknown":(l.rating+" / 5"))+
+    fact("REVIEWS", l.reviewCount==null?"Unknown":l.reviewCount)+
+    fact("PHONE", l.phone||"\u2014", true)+
+    fact("OFFER", offer?(esc(offer.name)+" \u00b7 "+money(l.offerPrice||offer.price)):"None chosen yet")+
+  '</div>'+
+  (l.notes?'<div class="hint" style="margin-bottom:6px"><b style="color:var(--muted-green)">NOTES:</b> '+esc(l.notes)+'</div>':"")+
+
+  '<div class="secttl">OPPORTUNITY SCORE \u2014 EXPLAINED</div>'+
+  '<div class="scorebox"><div><div class="score-total">'+sc.total+'<small>/'+sc.max+'</small></div>'+
+  '<div class="cov">'+sc.observed+' of '+sc.parts.length+' signals observed \u00b7 '+sc.gaps+' gap'+(sc.gaps===1?"":"s")+'</div></div>'+
+  '<div style="flex:1;min-width:260px">'+sc.parts.map(scorePart).join("")+'</div></div>'+
+  '<div class="honesty"><b>How to read this:</b> weights are a starting hypothesis \u2014 calibrate them in Settings as you learn from real outreach. '+
+  '"Not listed on Google" is an <b>observation, not proof</b> that no website exists. A failed lookup means <b>unknown</b>, never a confirmed gap. Unknowns are shown as gaps, not as opportunities.</div>'+
+
+  '<div class="secttl">EVIDENCE \u2014 FACT / SIGNAL / HYPOTHESIS / UNKNOWN</div>'+
+  evSection(l,"public","PUBLIC EVIDENCE","What anyone can observe: listings, reviews, socials.")+
+  evSection(l,"owner","VERIFIED OWNER PAIN","Only what the owner actually said or did \u2014 never inferred.")+
+  '<div class="panel" style="background:#0d1114;margin-top:12px"><h2 style="font-size:13px">+ ADD EVIDENCE</h2>'+
+  '<div class="frow"><div><label>CLAIM</label><input type="text" id="ev-text" placeholder="e.g. No website found on Google Maps"></div>'+
+  '<div><label>TYPE</label><select id="ev-type"><option value="fact">Fact \u2014 verified true</option><option value="signal">Signal \u2014 observed, interpretable</option><option value="hypothesis">Hypothesis \u2014 untested guess</option><option value="unknown">Unknown \u2014 a gap to fill</option></select></div></div>'+
+  '<div class="frow"><div><label>SECTION</label><select id="ev-section"><option value="public">Public evidence</option><option value="owner">Verified owner pain</option></select></div>'+
+  '<div><label>LINKS TO SCORE SIGNAL (optional)</label><select id="ev-field"><option value="">None</option><option value="website">Website</option><option value="rating">Rating</option><option value="reviews">Review volume</option><option value="phone">Phone</option></select></div></div>'+
+  '<div class="frow"><div><label>SOURCE URL / PLACE</label><input type="text" id="ev-source" placeholder="e.g. Yelp listing"></div>'+
+  '<div><label>DATE OBSERVED</label><input type="date" id="ev-date" value="'+today()+'"></div></div>'+
+  '<div class="btnrow"><button class="btn lime sm" onclick="addEvidence(\''+l.id+'\')">ADD EVIDENCE</button></div></div>'+
+
+  '<div class="secttl">PURSUIT DECISION</div>'+
+  '<div class="pursuit-btns">'+
+    '<button class="btn '+(l.pursuit==="pursue"?"lime":"ghost")+' sm" onclick="setPursuit(\''+l.id+'\',\'pursue\')">PURSUE</button>'+
+    '<button class="btn '+(l.pursuit==="park"?"lime":"ghost")+' sm" onclick="setPursuit(\''+l.id+'\',\'park\')">PARK</button>'+
+    '<button class="btn '+(l.pursuit==="drop"?"danger":"ghost")+' sm" onclick="setPursuit(\''+l.id+'\',\'drop\')">DROP</button>'+
+  '</div>'+
+  '<label>DROP CONDITION / KILL CRITERIA * (required to Park or Drop)</label>'+
+  '<textarea id="f-dropcond" placeholder="e.g. Drop if no reply 21 days after quote, or if owner explicitly declines.">'+esc(l.dropCondition)+'</textarea>'+
+  '<label>COUNTEREVIDENCE (what would prove this lead wrong?)</label>'+
+  '<textarea id="f-counterev" placeholder="e.g. They already have an agency on retainer.">'+esc(l.counterEvidence)+'</textarea>'+
+  '<div class="frow"><div><label>FOLLOW-UP DATE</label><input type="date" id="f-followup" value="'+esc(l.followUpDate||"")+'"></div></div>'+
+  '<div class="btnrow"><button class="btn primary sm" onclick="savePursuit(\''+l.id+'\')">SAVE DECISION</button></div>'+
+
+  '<div class="secttl">OFFER</div>'+
+  '<div class="frow"><div><label>SERVICE OFFER</label><select id="f-offer"><option value="">\u2014 choose \u2014</option>'+
+    S().settings.offers.map(function(o){return '<option value="'+o.id+'"'+(l.offerId===o.id?" selected":"")+'>'+esc(o.name)+' \u00b7 '+money(o.price)+'</option>';}).join("")+
+  '</select><div class="hint">Priced from your offer catalog in Settings.</div></div>'+
+  '<div><label>AGREED PRICE ($)</label><input type="number" id="f-offerprice" min="0" step="1" value="'+(l.offerPrice||"")+'" placeholder="Defaults to catalog price"></div></div>'+
+  '<div class="btnrow"><button class="btn primary sm" onclick="saveOffer(\''+l.id+'\')">SAVE OFFER</button></div>'+
+
+  '<div class="divider"></div><div id="outreach-sec">'+outreachSec(l)+'</div>'+
+  '<div class="divider"></div><div id="commercial-sec">'+commercialSec(l)+'</div>'+
+  '<div class="divider"></div><div id="activity-sec">'+activitySec(l)+'</div>'+
+
+  '<div class="divider"></div><div class="btnrow">'+
+  '<button class="btn danger sm" onclick="deleteLead(\''+l.id+'\')">DELETE LEAD</button></div>'+
+  '</div>';
+}
+function fact(k,v,mono){
+  return '<div class="fact"><div class="k">'+k+'</div><div class="v'+(mono?" mono":"")+'">'+v+'</div></div>';
+}
+function scorePart(p){
+  var ev=p.ev?('<span class="etype '+p.ev.type+'">'+p.ev.type.toUpperCase()+'</span> '+esc(p.ev.text)+' <span style="color:var(--muted)">\u00b7 '+esc(p.ev.date||"")+(p.ev.source?" \u00b7 "+esc(p.ev.source):"")+'</span>'):'<span style="color:var(--muted)">no linked evidence</span>';
+  return '<div class="spart'+(p.gap?" gap":"")+'"><div><b>'+esc(p.label)+'</b><div style="color:var(--muted);font-size:11.5px">'+esc(p.valueText)+' \u00b7 '+esc(p.note)+'</div></div>'+
+  '<div class="pts">+'+p.points+'/'+p.max+'</div><div class="ev">'+ev+'</div></div>';
+}
+function evSection(l,section,title,desc){
+  var items=(l.evidence||[]).filter(function(e){return e.section===section;});
+  return '<div class="evsec '+section+'"><h4>'+title+'</h4><div class="hint" style="margin:0 0 8px">'+desc+'</div>'+
+  (items.length?items.map(function(e){
+    return '<div class="evitem"><span class="etype '+e.type+'">'+e.type.toUpperCase()+'</span>'+
+    '<div class="txt">'+esc(e.text)+'<div class="src">'+(e.source?esc(e.source)+" \u00b7 ":"")+esc(e.date||"")+(e.field?' \u00b7 linked: '+e.field:"")+'</div></div>'+
+    '<button class="x" title="Remove" onclick="delEvidence(\''+l.id+'\',\''+e.id+'\')">&times;</button></div>';
+  }).join(""):'<div class="hint">Nothing recorded here yet.</div>')+'</div>';
+}
+function addEvidence(leadId){
+  var l=getLead(leadId);
+  var text=document.getElementById("ev-text").value.trim();
+  if(!text){ alert("Describe the claim first."); return; }
+  l.evidence.push({id:uid(), type:document.getElementById("ev-type").value,
+    section:document.getElementById("ev-section").value,
+    field:document.getElementById("ev-field").value||null,
+    text:text, source:document.getElementById("ev-source").value.trim(),
+    date:document.getElementById("ev-date").value||today()});
+  DB.save(); go("lead",leadId);
+}
+function delEvidence(leadId,eid){
+  var l=getLead(leadId);
+  l.evidence=l.evidence.filter(function(e){return e.id!==eid;});
+  DB.save(); go("lead",leadId);
+}
+function setPursuit(leadId,v){ var l=getLead(leadId); l.pursuit=v; DB.save(); go("lead",leadId); }
+function savePursuit(leadId){
+  var l=getLead(leadId);
+  var dc=document.getElementById("f-dropcond").value.trim();
+  if((l.pursuit==="park"||l.pursuit==="drop")&&!dc){ alert("A drop condition / kill criterion is required to Park or Drop a lead."); return; }
+  l.dropCondition=dc;
+  l.counterEvidence=document.getElementById("f-counterev").value.trim();
+  l.followUpDate=document.getElementById("f-followup").value;
+  DB.save(); go("lead",leadId);
+}
+function saveOffer(leadId){
+  var l=getLead(leadId);
+  var oid=document.getElementById("f-offer").value;
+  l.offerId=oid;
+  var off=getOffer(oid);
+  var p=document.getElementById("f-offerprice").value.trim();
+  l.offerPrice=p===""?(off?off.price:0):Number(p);
+  DB.save(); go("lead",leadId);
+}
+function setStage(leadId,s){ var l=getLead(leadId); l.stage=s; DB.save(); go("lead",leadId); }
+function advanceStage(leadId){
+  var l=getLead(leadId);
+  var i=STAGES.findIndex(function(s){return s.id===l.stage;});
+  if(i<STAGES.length-1){ l.stage=STAGES[i+1].id; DB.save(); }
+  go("lead",leadId);
+}
+function deleteLead(leadId){
+  var l=getLead(leadId);
+  if(!confirm("Delete \""+l.name+"\" and all its evidence, outreach, quotes, and activity? This cannot be undone. Export a backup first if unsure.")) return;
+  S().leads=S().leads.filter(function(x){return x.id!==leadId;});
+  DB.save(); go("pipeline");
+}
+/* ================= OUTREACH ================= */
+function outreachSec(l){
+  var drafts=(l.outreach||[]).map(function(d){
+    var next=d.status==="draft"?'<button class="btn ghost sm" onclick="setDraftStatus(\''+l.id+'\',\''+d.id+'\',\'reviewed\')">MARK REVIEWED</button>'
+      :(d.status==="reviewed"?'<button class="btn lime sm" onclick="confirmSent(\''+l.id+'\',\''+d.id+'\')">MARK SENT (MANUAL)</button>':"");
+    return '<div class="draft"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+      '<span class="st '+d.status+'">'+d.status.toUpperCase()+'</span>'+
+      '<span class="hint" style="margin:0">'+esc(d.createdAt)+'</span><span class="spacer" style="flex:1"></span>'+next+
+      '<button class="x" title="Delete draft" onclick="delDraft(\''+l.id+'\',\''+d.id+'\')">&times;</button></div>'+
+      '<div class="body">'+esc(d.body)+'</div></div>';
+  }).join("");
+  return '<div class="secttl">OUTREACH \u2014 DRAFT \u2192 REVIEW \u2192 SENT</div>'+
+  '<div class="honesty" style="border-color:var(--red)"><b>Honesty rule:</b> never claim a preview, website, or result that does not exist. '+
+  'Scouter <b>never sends messages automatically</b> \u2014 "sent" means <i>you</i> sent it yourself, by hand.</div>'+
+  '<div style="margin-top:10px">'+(drafts||'<div class="hint">No drafts yet.</div>')+'</div>'+
+  '<label>NEW DRAFT</label><textarea id="draft-body" placeholder="Write the actual message you would send\u2026"></textarea>'+
+  '<div class="btnrow"><button class="btn lime sm" onclick="addDraft(\''+l.id+'\')">SAVE DRAFT</button></div>';
+}
+function addDraft(leadId){
+  var l=getLead(leadId);
+  var body=document.getElementById("draft-body").value.trim();
+  if(!body){ alert("Write the draft first."); return; }
+  l.outreach.push({id:uid(), body:body, status:"draft", createdAt:today()});
+  DB.save(); go("lead",leadId);
+}
+function setDraftStatus(leadId,did,st){
+  var l=getLead(leadId); var d=l.outreach.find(function(x){return x.id===did;});
+  if(d){ d.status=st; DB.save(); } go("lead",leadId);
+}
+function confirmSent(leadId,did){
+  if(!confirm("Mark this as SENT?\n\nOnly confirm if YOU personally sent this message by hand. Scouter does not and cannot send messages.")) return;
+  setDraftStatus(leadId,did,"sent");
+}
+function delDraft(leadId,did){
+  var l=getLead(leadId);
+  l.outreach=l.outreach.filter(function(x){return x.id!==did;});
+  DB.save(); go("lead",leadId);
+}
+
+/* ================= COMMERCIAL ================= */
+function leadTotals(l){
+  var quoted=(l.quotes||[]).reduce(function(a,q){return a+(q.items||[]).reduce(function(x,i){return x+(Number(i.amount)||0);},0);},0);
+  var received=(l.payments||[]).reduce(function(a,p){return a+(Number(p.amount)||0);},0);
+  var expenses=(l.expenses||[]).reduce(function(a,e){return a+(Number(e.amount)||0);},0);
+  return {quoted:quoted, received:received, expenses:expenses, net:received-expenses};
+}
+function commercialSec(l){
+  var t=leadTotals(l);
+  var quotes=(l.quotes||[]).map(function(q){
+    var sum=(q.items||[]).reduce(function(a,i){return a+(Number(i.amount)||0);},0);
+    return '<div class="draft"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(q.title)+'</b>'+
+      '<span class="st '+(q.status==="accepted"?"sent":(q.status==="sent"?"reviewed":"draft"))+'">'+esc(q.status).toUpperCase()+'</span>'+
+      '<span class="tot">'+money(sum)+'</span><span class="spacer" style="flex:1"></span>'+
+      (q.status!=="accepted"?'<button class="btn ghost sm" onclick="setQuoteStatus(\''+l.id+'\',\''+q.id+'\',\'sent\')">QUOTE SENT</button>':"")+
+      (q.status!=="accepted"?'<button class="btn lime sm" onclick="setQuoteStatus(\''+l.id+'\',\''+q.id+'\',\'accepted\')">ACCEPTED</button>':"")+
+      '<button class="x" onclick="delQuote(\''+l.id+'\',\''+q.id+'\')">&times;</button></div>'+
+      '<table><tr><th>LINE ITEM</th><th style="text-align:right">AMOUNT</th></tr>'+
+      (q.items||[]).map(function(i){return '<tr><td>'+esc(i.desc)+'</td><td class="num">'+money(i.amount)+'</td></tr>';}).join("")+
+      '</table><div class="hint">Sent '+esc(q.createdAt)+'</div></div>';
+  }).join("");
+  var payments=(l.payments||[]).map(function(p){
+    return '<tr><td>'+esc(p.date)+'</td><td>'+esc(p.note||"")+'</td><td class="num tot">'+money(p.amount)+'</td>'+
+    '<td><button class="x" onclick="delRow(\''+l.id+'\',\'payments\',\''+p.id+'\')">&times;</button></td></tr>';
+  }).join("");
+  var expenses=(l.expenses||[]).map(function(e){
+    return '<tr><td>'+esc(e.date)+'</td><td>'+esc(e.note||"")+'</td><td class="num">'+money(e.amount)+'</td>'+
+    '<td><button class="x" onclick="delRow(\''+l.id+'\',\'expenses\',\''+e.id+'\')">&times;</button></td></tr>';
+  }).join("");
+  var episodes=(l.episodes||[]).map(function(e){
+    return '<div class="evitem"><span class="etype hypothesis">EPISODE</span><div class="txt"><b>'+esc(e.title)+'</b> \u2014 '+esc(e.status)+
+    (e.note?'<div class="src">'+esc(e.note)+'</div>':"")+'</div>'+
+    '<button class="x" onclick="delRow(\''+l.id+'\',\'episodes\',\''+e.id+'\')">&times;</button></div>';
+  }).join("");
+  return '<div class="secttl">COMMERCIAL \u2014 QUOTES \u00b7 PAYMENTS \u00b7 EXPENSES \u00b7 EPISODES</div>'+
+  '<div class="kv"><span>Quoted</span><b>'+money(t.quoted)+'</b></div>'+
+  '<div class="kv"><span>Received</span><b>'+money(t.received)+'</b></div>'+
+  '<div class="kv"><span>Expenses</span><b>'+money(t.expenses)+'</b></div>'+
+  '<div class="kv"><span>Net</span><b>'+money(t.net)+'</b></div>'+
+  '<div class="secttl" style="margin-top:14px">QUOTES</div>'+(quotes||'<div class="hint">No quotes yet.</div>')+
+  '<div class="panel" style="background:#0d1114;margin-top:10px"><h2 style="font-size:13px">+ NEW QUOTE</h2>'+
+  '<label>QUOTE TITLE</label><input type="text" id="q-title" placeholder="e.g. Website + Content Launch">'+
+  '<label>LINE ITEMS</label><div id="q-lines"><div class="qline"><input type="text" placeholder="Description" class="q-desc"><input type="number" placeholder="$" min="0" class="q-amt"><span></span></div></div>'+
+  '<div class="btnrow"><button class="btn ghost sm" onclick="addQuoteLine()">+ LINE</button>'+
+  '<button class="btn lime sm" onclick="addQuote(\''+l.id+'\')">SAVE QUOTE</button></div></div>'+
+  '<div class="grid2"><div><div class="secttl" style="margin-top:14px">PAYMENTS RECEIVED</div>'+
+  '<table><tr><th>DATE</th><th>NOTE</th><th style="text-align:right">AMOUNT</th><th></th></tr>'+(payments||"")+'</table>'+
+  '<div class="frow"><div><label>AMOUNT ($)</label><input type="number" id="pay-amt" min="0" step="1"></div>'+
+  '<div><label>DATE</label><input type="date" id="pay-date" value="'+today()+'"></div></div>'+
+  '<label>NOTE</label><input type="text" id="pay-note" placeholder="e.g. Deposit, final payment">'+
+  '<div class="btnrow"><button class="btn lime sm" onclick="addMoneyRow(\''+l.id+'\',\'payments\')">+ PAYMENT</button></div></div>'+
+  '<div><div class="secttl" style="margin-top:14px">EXPENSES</div>'+
+  '<table><tr><th>DATE</th><th>NOTE</th><th style="text-align:right">AMOUNT</th><th></th></tr>'+(expenses||"")+'</table>'+
+  '<div class="frow"><div><label>AMOUNT ($)</label><input type="number" id="exp-amt" min="0" step="1"></div>'+
+  '<div><label>DATE</label><input type="date" id="exp-date" value="'+today()+'"></div></div>'+
+  '<label>NOTE</label><input type="text" id="exp-note" placeholder="e.g. Domain, stock assets">'+
+  '<div class="btnrow"><button class="btn ghost sm" onclick="addMoneyRow(\''+l.id+'\',\'expenses\')">+ EXPENSE</button></div></div></div>'+
+  '<div class="secttl" style="margin-top:14px">CONTENT EPISODE TIE-INS <span class="seedtag">ODD JOBS / WUMPUS FIXES IT</span></div>'+
+  (episodes||'<div class="hint">No episodes tied to this job yet.</div>')+
+  '<div class="frow"><div><label>EPISODE TITLE</label><input type="text" id="ep-title" placeholder="e.g. Wumpus Fixes It \u2014 Ep. 3"></div>'+
+  '<div><label>STATUS</label><select id="ep-status"><option>idea</option><option>filming</option><option>editing</option><option>published</option></select></div></div>'+
+  '<label>NOTE</label><input type="text" id="ep-note" placeholder="Angle, footage status\u2026">'+
+  '<div class="btnrow"><button class="btn ghost sm" onclick="addEpisode(\''+l.id+'\')">+ EPISODE</button></div>';
+}
+function addQuoteLine(){
+  var d=document.createElement("div"); d.className="qline";
+  d.innerHTML='<input type="text" placeholder="Description" class="q-desc"><input type="number" placeholder="$" min="0" class="q-amt"><button class="x" onclick="this.parentNode.remove()">&times;</button>';
+  document.getElementById("q-lines").appendChild(d);
+}
+function addQuote(leadId){
+  var l=getLead(leadId);
+  var title=document.getElementById("q-title").value.trim()||"Quote";
+  var items=[];
+  document.querySelectorAll("#q-lines .qline").forEach(function(row){
+    var d=row.querySelector(".q-desc").value.trim(), a=row.querySelector(".q-amt").value.trim();
+    if(d||a) items.push({desc:d||"Item", amount:Number(a)||0});
+  });
+  if(!items.length){ alert("Add at least one line item."); return; }
+  l.quotes.push({id:uid(), title:title, status:"draft", createdAt:today(), items:items});
+  DB.save(); go("lead",leadId);
+}
+function setQuoteStatus(leadId,qid,st){
+  var l=getLead(leadId); var q=l.quotes.find(function(x){return x.id===qid;});
+  if(q){ q.status=st; DB.save(); } go("lead",leadId);
+}
+function delQuote(leadId,qid){
+  var l=getLead(leadId); l.quotes=l.quotes.filter(function(x){return x.id!==qid;});
+  DB.save(); go("lead",leadId);
+}
+function addMoneyRow(leadId,kind){
+  var l=getLead(leadId);
+  var pre=kind==="payments"?"pay":"exp";
+  var amt=Number(document.getElementById(pre+"-amt").value);
+  if(!(amt>0)){ alert("Enter an amount greater than 0."); return; }
+  l[kind].push({id:uid(), amount:amt, date:document.getElementById(pre+"-date").value||today(),
+    note:document.getElementById(pre+"-note").value.trim()});
+  DB.save(); go("lead",leadId);
+}
+function addEpisode(leadId){
+  var l=getLead(leadId);
+  var t=document.getElementById("ep-title").value.trim();
+  if(!t){ alert("Give the episode a title."); return; }
+  l.episodes.push({id:uid(), title:t, status:document.getElementById("ep-status").value,
+    note:document.getElementById("ep-note").value.trim()});
+  DB.save(); go("lead",leadId);
+}
+function delRow(leadId,kind,rid){
+  var l=getLead(leadId);
+  l[kind]=l[kind].filter(function(x){return x.id!==rid;});
+  DB.save(); go("lead",leadId);
+}
+
+/* ================= ACTIVITY LOG ================= */
+function activitySec(l){
+  var rows=(l.activity||[]).slice().reverse().map(function(a){
+    return '<tr><td class="mono">'+esc(a.date)+'</td><td>'+esc(a.action)+'</td>'+
+    '<td class="num">'+(a.timeSpentMin||0)+'m</td><td>'+esc(a.friction||"\u2014")+'</td><td>'+esc(a.note||"")+'</td>'+
+    '<td><button class="x" onclick="delRow(\''+l.id+'\',\'activity\',\''+a.id+'\')">&times;</button></td></tr>';
+  }).join("");
+  var totalMin=(l.activity||[]).reduce(function(s,a){return s+(Number(a.timeSpentMin)||0);},0);
+  return '<div class="secttl">ACTIVITY LOG \u2014 TIME + FRICTION</div>'+
+  '<div class="hint">Log what you actually did and what it cost you. This feeds the Day-7 review: <b>does structured scouting beat random prospecting?</b></div>'+
+  '<div class="kv"><span>Total time on this lead</span><b>'+totalMin+' min ('+(totalMin/60).toFixed(1)+'h)</b></div>'+
+  '<table><tr><th>DATE</th><th>ACTION</th><th style="text-align:right">TIME</th><th>FRICTION</th><th>NOTE</th><th></th></tr>'+(rows||"")+'</table>'+
+  '<div class="frow"><div><label>ACTION</label><select id="ac-action">'+
+    ["Research","In-person visit","Phone call","Outreach sent","Follow-up","Response received","Quote sent","Quote accepted","Work delivered","Payment received","Dropped / parked"].map(function(a){return '<option>'+a+'</option>';}).join("")+
+  '</select></div><div><label>DATE</label><input type="date" id="ac-date" value="'+today()+'"></div></div>'+
+  '<div class="frow"><div><label>TIME SPENT (MIN)</label><input type="number" id="ac-time" min="0" step="5" placeholder="e.g. 30"></div>'+
+  '<div><label>FRICTION</label><input type="text" id="ac-friction" placeholder="Low / Medium / High \u2014 what snagged?"></div></div>'+
+  '<label>NOTE</label><input type="text" id="ac-note" placeholder="What happened?">'+
+  '<div class="btnrow"><button class="btn lime sm" onclick="addActivity(\''+l.id+'\')">LOG ACTIVITY</button></div>';
+}
+function addActivity(leadId){
+  var l=getLead(leadId);
+  l.activity.push({id:uid(), date:document.getElementById("ac-date").value||today(),
+    action:document.getElementById("ac-action").value,
+    timeSpentMin:Number(document.getElementById("ac-time").value)||0,
+    friction:document.getElementById("ac-friction").value.trim(),
+    note:document.getElementById("ac-note").value.trim()});
+  DB.save(); go("lead",leadId);
+}
+/* ================= DAY-7 REVIEW ================= */
+function inRange(dateStr,days){
+  if(!days) return true;
+  var d=new Date(dateStr+"T12:00:00"); if(isNaN(d)) return false;
+  return (Date.now()-d.getTime())<=days*864e5;
+}
+function computeMetrics(days){
+  var leads=S().leads;
+  var touched=new Set(), timeMin=0, outreachSent=0, responses=0, frictionN=0;
+  leads.forEach(function(l){
+    (l.activity||[]).forEach(function(a){
+      if(!inRange(a.date,days)) return;
+      touched.add(l.id); timeMin+=Number(a.timeSpentMin)||0;
+      if(a.action==="Outreach sent") outreachSent++;
+      if(a.action==="Response received") responses++;
+      if(a.friction) frictionN++;
+    });
+    (l.outreach||[]).forEach(function(d){ if(d.status==="sent"&&inRange(d.createdAt,days)){ touched.add(l.id); outreachSent++; } });
+  });
+  var quotesSent=0, quotesAccepted=0, quoted=0, received=0, expenses=0;
+  leads.forEach(function(l){
+    (l.quotes||[]).forEach(function(q){
+      if(!inRange(q.createdAt,days)) return;
+      var sum=(q.items||[]).reduce(function(a,i){return a+(Number(i.amount)||0);},0);
+      if(q.status==="sent"||q.status==="accepted"){ quotesSent++; quoted+=sum; }
+      if(q.status==="accepted") quotesAccepted++;
+    });
+    (l.payments||[]).forEach(function(p){ if(inRange(p.date,days)) received+=Number(p.amount)||0; });
+    (l.expenses||[]).forEach(function(e){ if(inRange(e.date,days)) expenses+=Number(e.amount)||0; });
+  });
+  return {leadsTouched:touched.size, timeMin:timeMin, outreachSent:outreachSent, responses:responses,
+    quotesSent:quotesSent, quotesAccepted:quotesAccepted, quoted:quoted, received:received, expenses:expenses,
+    responseRate: outreachSent?Math.round(responses/outreachSent*100):0,
+    minPerLead: touched.size?Math.round(timeMin/touched.size):0};
+}
+var day7Range=7;
+function setRange(d){ day7Range=d; render(); }
+function viewDay7(){
+  var m=computeMetrics(day7Range), b=S().settings.baseline;
+  function row(label,sv,rv,suffix){
+    suffix=suffix||"";
+    var better=sv>rv;
+    return '<tr><td>'+label+'</td><td class="num tot">'+sv+suffix+'</td><td class="num">'+rv+suffix+'</td>'+
+    '<td>'+(better?'<span style="color:var(--lime);font-weight:700">SCOUTER \u25b2</span>':'<span style="color:var(--muted)">\u2014</span>')+'</td></tr>';
+  }
+  return '<div class="panel"><h2>DAY-7 REVIEW \u2014 DOES STRUCTURED SCOUTING BEAT RANDOM PROSPECTING?</h2>'+
+  '<div class="sub">The whole point of the validation lane. Compare what Scouter-assisted scouting produced against your own random-prospecting baseline. If Scouter is not winning, the process \u2014 not your effort \u2014 needs fixing.</div>'+
+  '<div class="btnrow" style="margin-top:0"><button class="btn '+(day7Range===7?"lime":"ghost")+' sm" onclick="setRange(7)">LAST 7 DAYS</button>'+
+  '<button class="btn '+(day7Range===0?"lime":"ghost")+' sm" onclick="setRange(0)">ALL TIME</button></div>'+
+  '<table><tr><th>METRIC</th><th style="text-align:right">SCOUTER</th><th style="text-align:right">RANDOM BASELINE</th><th>WINNER</th></tr>'+
+  row("Leads touched",m.leadsTouched,b.leadsTouched)+
+  row("Responses",m.responses,b.responses)+
+  row("Time spent (min)",m.timeMin,b.timeSpentMin)+
+  '</table>'+
+  '<div class="grid2" style="margin-top:14px"><div>'+
+  '<div class="kv"><span>Outreach sent</span><b>'+m.outreachSent+'</b></div>'+
+  '<div class="kv"><span>Response rate</span><b>'+m.responseRate+'%</b></div>'+
+  '<div class="kv"><span>Quotes sent / accepted</span><b>'+m.quotesSent+' / '+m.quotesAccepted+'</b></div>'+
+  '<div class="kv"><span>Quoted value</span><b>'+money(m.quoted)+'</b></div>'+
+  '<div class="kv"><span>Received</span><b>'+money(m.received)+'</b></div>'+
+  '<div class="kv"><span>Avg min per lead</span><b>'+m.minPerLead+'</b></div>'+
+  '</div><div><label>RANDOM-PROSPECTING BASELINE (your honest estimate)</label>'+
+  '<div class="frow"><div><label>LEADS TOUCHED / WEEK</label><input type="number" id="b-leads" min="0" value="'+b.leadsTouched+'"></div>'+
+  '<div><label>RESPONSES / WEEK</label><input type="number" id="b-resp" min="0" value="'+b.responses+'"></div></div>'+
+  '<label>TIME SPENT (MIN / WEEK)</label><input type="number" id="b-time" min="0" value="'+b.timeSpentMin+'">'+
+  '<div class="btnrow"><button class="btn primary sm" onclick="saveBaseline()">SAVE BASELINE</button></div>'+
+  '<div class="hint">Set this from a real week of unstructured prospecting \u2014 not a guess designed to make Scouter look good.</div>'+
+  '</div></div></div>';
+}
+function saveBaseline(){
+  S().settings.baseline={
+    leadsTouched:Number(document.getElementById("b-leads").value)||0,
+    responses:Number(document.getElementById("b-resp").value)||0,
+    timeSpentMin:Number(document.getElementById("b-time").value)||0};
+  DB.save(); render();
+}
+
+/* ================= MONEY ================= */
+function viewMoney(){
+  var rows=S().leads.map(function(l){
+    var t=leadTotals(l);
+    var ep=(l.episodes||[]).length;
+    return '<tr><td><a href="#" onclick="go(\'lead\',\''+l.id+'\');return false;" style="color:var(--gold);font-weight:600">'+esc(l.name)+'</a>'+
+    (ep?'<div class="hint">'+ep+' episode'+(ep===1?"":"s")+'</div>':"")+'</td>'+
+    '<td class="num">'+money(t.quoted)+'</td><td class="num tot">'+money(t.received)+'</td>'+
+    '<td class="num">'+money(t.expenses)+'</td><td class="num tot">'+money(t.net)+'</td></tr>';
+  }).join("");
+  var g={quoted:0,received:0,expenses:0};
+  S().leads.forEach(function(l){ var t=leadTotals(l); g.quoted+=t.quoted; g.received+=t.received; g.expenses+=t.expenses; });
+  return '<div class="panel"><h2>MONEY \u2014 GLOBAL LEDGER</h2>'+
+  '<div class="sub">Quoted, received, and spent across every lead. Deposits are the metric that matters.</div>'+
+  '<div class="grid3">'+
+  '<div class="scorebox" style="margin:0"><div><div class="score-total">'+money(g.quoted)+'</div><div class="cov">TOTAL QUOTED</div></div></div>'+
+  '<div class="scorebox" style="margin:0"><div><div class="score-total" style="color:var(--lime)">'+money(g.received)+'</div><div class="cov">TOTAL RECEIVED</div></div></div>'+
+  '<div class="scorebox" style="margin:0"><div><div class="score-total">'+money(g.received-g.expenses)+'</div><div class="cov">NET</div></div></div>'+
+  '</div>'+
+  '<table><tr><th>LEAD</th><th style="text-align:right">QUOTED</th><th style="text-align:right">RECEIVED</th><th style="text-align:right">EXPENSES</th><th style="text-align:right">NET</th></tr>'+
+  (rows||"")+'</table></div>';
+}
+
+/* ================= SETTINGS ================= */
+function viewSettings(){
+  var st=S().settings;
+  var offers=st.offers.map(function(o){
+    return '<div class="evitem"><div class="txt"><b>'+esc(o.name)+'</b> \u00b7 <span class="tot">'+money(o.price)+'</span>'+
+    (o.priceNote?'<span class="hint"> \u2014 '+esc(o.priceNote)+'</span>':"")+
+    (o.description?'<div class="src">'+esc(o.description)+'</div>':"")+'</div>'+
+    '<button class="x" onclick="delOffer(\''+o.id+'\')">&times;</button></div>';
+  }).join("");
+  var w=st.weights;
+  return '<div class="panel"><h2>SETTINGS</h2>'+
+  '<div class="sub"><b style="color:var(--gold)">What Scouter v3.5 does for you:</b> it turns a Google Maps result into a trustworthy Target Card with an explained opportunity score, '+
+  'keeps your evidence honest (Fact / Signal / Hypothesis / Unknown), forces a pursuit decision with kill criteria, drafts outreach you review before anything is sent, '+
+  'and tracks quotes, payments, and expenses per lead \u2014 so a Day-7 review can tell you whether structured scouting actually beats random prospecting. '+
+  '<b>It never contacts anyone automatically and never makes promises on your behalf.</b></div>'+
+
+  '<div class="secttl">YOUR OFFER CATALOG</div>'+
+  '<div class="hint">These prices feed the Offer picker on every Target Card. One offer, one price \u2014 keep it narrow until validation says otherwise.</div>'+
+  (offers||"")+
+  '<div class="frow"><div><label>OFFER NAME</label><input type="text" id="of-name" placeholder="e.g. Website + Content Launch"></div>'+
+  '<div><label>PRICE ($)</label><input type="number" id="of-price" min="0" step="1" placeholder="1250"></div></div>'+
+  '<label>PRICE NOTE</label><input type="text" id="of-pricenote" placeholder="e.g. Flat package / range $500\u2013$1,000">'+
+  '<label>DESCRIPTION</label><input type="text" id="of-desc" placeholder="What the buyer gets">'+
+  '<div class="btnrow"><button class="btn lime sm" onclick="addOffer()">+ ADD OFFER</button></div>'+
+
+  '<div class="secttl">SCORE CALIBRATION \u2014 A HYPOTHESIS, NOT TRUTH</div>'+
+  '<div class="hint">Starting weights from Friday\u2019s design. Adjust them as real outreach teaches you what actually predicts a win. "Make the score understandable before making it sophisticated."</div>'+
+  '<div class="frow"><div><label>WEBSITE NOT LISTED</label><input type="number" id="w-website" min="0" value="'+w.website+'"></div>'+
+  '<div><label>CUSTOMER RATING</label><input type="number" id="w-rating" min="0" value="'+w.rating+'"></div></div>'+
+  '<div class="frow"><div><label>REVIEW VOLUME</label><input type="number" id="w-reviews" min="0" value="'+w.reviews+'"></div>'+
+  '<div><label>PHONE AVAILABLE</label><input type="number" id="w-phone" min="0" value="'+w.phone+'"></div></div>'+
+  '<div class="btnrow"><button class="btn primary sm" onclick="saveWeights()">SAVE WEIGHTS</button></div>'+
+
+  '<div class="secttl">API KEYS \u2014 OPTIONAL, LAST FOR A REASON</div>'+
+  '<div class="hint">Everything above works without any key. Keys only unlock live lookups later; add them when \u2014 and only when \u2014 you need them. Stored in this browser only, never sent anywhere by Scouter itself.</div>'+
+  '<label>GOOGLE PLACES API KEY</label><input type="text" id="k-places" class="mono" value="'+esc(st.apiKeys.places)+'" placeholder="Not required">'+
+  '<label>YOUTUBE DATA API KEY</label><input type="text" id="k-youtube" class="mono" value="'+esc(st.apiKeys.youtube)+'" placeholder="Not required">'+
+  '<label>OPENAI API KEY</label><input type="text" id="k-openai" class="mono" value="'+esc(st.apiKeys.openai)+'" placeholder="Not required">'+
+  '<div class="btnrow"><button class="btn ghost sm" onclick="saveKeys()">SAVE KEYS</button></div>'+
+
+  '<div class="secttl">ROADMAP \u2014 LATER, NOT NOW</div>'+
+  '<div class="hint">Named extension points. None of these are built \u2014 the local-business digital-services lane comes first, and only validation earns expansion.</div>'+
+  '<div class="roadmap"><span class="rmchip">SCOUTER DISCOVER \u00b7 later</span><span class="rmchip">SCOUTER INTELLIGENCE \u00b7 later</span><span class="rmchip">SCOUTER WORKBENCH \u00b7 later</span><span class="rmchip">SCOUTER OPS \u00b7 later</span><span class="rmchip">TRADES MODE \u00b7 later</span></div>'+
+
+  '<div class="secttl" style="color:var(--red)">DANGER ZONE</div>'+
+  '<div class="btnrow"><button class="btn ghost sm" onclick="exportJSON()">EXPORT BACKUP FIRST</button>'+
+  '<button class="btn danger sm" onclick="restoreSeed()">RESTORE SEED DATA</button>'+
+  '<button class="btn danger sm" onclick="wipeAll()">DELETE EVERYTHING</button></div>'+
+  '</div>';
+}
+function addOffer(){
+  var name=document.getElementById("of-name").value.trim();
+  var price=Number(document.getElementById("of-price").value);
+  if(!name||!(price>=0)){ alert("Offer needs a name and a price."); return; }
+  S().settings.offers.push({id:uid(), name:name, price:price,
+    priceNote:document.getElementById("of-pricenote").value.trim(),
+    description:document.getElementById("of-desc").value.trim()});
+  DB.save(); render();
+}
+function delOffer(id){
+  S().settings.offers=S().settings.offers.filter(function(o){return o.id!==id;});
+  DB.save(); render();
+}
+function saveWeights(){
+  S().settings.weights={
+    website:Number(document.getElementById("w-website").value)||0,
+    rating:Number(document.getElementById("w-rating").value)||0,
+    reviews:Number(document.getElementById("w-reviews").value)||0,
+    phone:Number(document.getElementById("w-phone").value)||0};
+  DB.save(); render();
+}
+function saveKeys(){
+  S().settings.apiKeys={
+    places:document.getElementById("k-places").value.trim(),
+    youtube:document.getElementById("k-youtube").value.trim(),
+    openai:document.getElementById("k-openai").value.trim()};
+  DB.save(); render();
+}
+function restoreSeed(){
+  if(!confirm("Replace ALL current data with the original seed examples? Export a backup first if you want to keep your work.")) return;
+  DB.reset(); go("pipeline");
+}
+function wipeAll(){
+  if(!confirm("Delete EVERYTHING (leads, offers, settings)? This cannot be undone.")) return;
+  if(!confirm("Last chance \u2014 really wipe all Scouter data?")) return;
+  localStorage.removeItem(LS_KEY); DB.load(); go("pipeline");
+}
+
+/* ================= EXPORT / IMPORT ================= */
+function exportJSON(){
+  var blob=new Blob([JSON.stringify(DB.state,null,2)],{type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="scouter-v3.5-backup-"+today()+".json";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function importJSON(input){
+  var f=input.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var data=JSON.parse(r.result);
+      if(!data||!Array.isArray(data.leads)) throw new Error("bad shape");
+      if(!confirm("Import will REPLACE all current data with this backup ("+data.leads.length+" leads). Continue?")) return;
+      DB.state=data; DB.save(); go("pipeline");
+    }catch(e){ alert("That file is not a valid Scouter backup."); }
+    input.value="";
+  };
+  r.readAsText(f);
+}
+
+/* ================= INIT ================= */
+DB.load();
+render();
+</script>
+</body>
+</html>
