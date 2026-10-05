@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local Lead Scout & Google Places Auditor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-stone-950 text-stone-100 min-h-screen font-sans p-4 md:p-8">
+  <div class="max-w-6xl mx-auto space-y-6">
+    
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-stone-800 pb-4 gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-amber-500 flex items-center gap-2">
+          <i class="fa-solid fa-radar"></i> Local Business Scout API
+        </h1>
+        <p class="text-xs text-stone-400">Scan Google Places for businesses missing websites or modern web apps</p>
+      </div>
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <input type="password" id="apiKeyInput" placeholder="Paste Google Places API Key" class="bg-stone-900 text-xs px-3 py-2 rounded border border-stone-700 w-full md:w-64 focus:outline-none focus:border-amber-500">
+        <button onclick="saveApiKey()" class="bg-stone-800 hover:bg-stone-700 text-xs px-3 py-2 rounded text-stone-300 border border-stone-700">Save Key</button>
+      </div>
+    </header>
+
+    <div class="bg-stone-900/80 p-4 rounded-xl border border-stone-800 grid grid-cols-1 md:grid-cols-4 gap-3">
+      <input type="text" id="queryInput" placeholder="Category (e.g., Auto Repair, Plumbers)" class="bg-stone-950 p-2.5 rounded text-sm border border-stone-800 focus:outline-none focus:border-amber-500">
+      <input type="text" id="locationInput" placeholder="City / Location (e.g., Rexburg, ID)" class="bg-stone-950 p-2.5 rounded text-sm border border-stone-800 focus:outline-none focus:border-amber-500">
+      <select id="filterSelect" class="bg-stone-950 p-2.5 rounded text-sm border border-stone-800 text-stone-300 focus:outline-none focus:border-amber-500">
+        <option value="all">All Places</option>
+        <option value="no-website" selected>Target: Missing Website Only</option>
+      </select>
+      <button onclick="runScoutScan()" class="bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold p-2.5 rounded text-sm transition flex items-center justify-center gap-2">
+        <i class="fa-solid fa-magnifying-glass"></i> Scan Google Places
+      </button>
+    </div>
+
+    <div id="map" class="hidden"></div>
+
+    <div class="space-y-3">
+      <div class="flex justify-between items-center">
+        <h2 class="text-sm font-semibold text-stone-400 uppercase tracking-wider">Live Search Targets</h2>
+        <span id="statusText" class="text-xs text-stone-500">Ready to scan</span>
+      </div>
+      
+      <div class="bg-stone-900/50 rounded-xl border border-stone-800 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-stone-900 text-stone-400 text-xs border-b border-stone-800">
+              <tr>
+                <th class="p-3">Business</th>
+                <th class="p-3">Rating</th>
+                <th class="p-3">Website Audit</th>
+                <th class="p-3">Action</th>
+              </tr>
+            </thead>
+            <tbody id="resultsTable" class="divide-y divide-stone-800/60">
+              <tr>
+                <td colspan="4" class="p-8 text-center text-stone-500 text-xs">Enter your Google Places API Key above and click "Scan Google Places" to start auditing.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-3 pt-4">
+      <div class="flex justify-between items-center">
+        <h2 class="text-sm font-semibold text-amber-500 uppercase tracking-wider">Saved Sales Pipeline</h2>
+        <span id="pipelineCount" class="text-xs bg-stone-800 px-2.5 py-1 rounded-full text-stone-400">0 Prospects</span>
+      </div>
+
+      <div id="pipelineContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+    </div>
+  </div>
+
+  <script>
+    let placesService;
+    let pipeline = JSON.parse(localStorage.getItem('scout_pipeline') || '[]');
+
+    // Load API Key on Startup
+    window.onload = () => {
+      const savedKey = localStorage.getItem('google_places_api_key');
+      if (savedKey) {
+        document.getElementById('apiKeyInput').value = savedKey;
+        initGoogleSDK(savedKey);
+      }
+      renderPipeline();
+    };
+
+    function saveApiKey() {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      if (!key) return alert('Please enter a valid API key');
+      localStorage.setItem('google_places_api_key', key);
+      initGoogleSDK(key);
+      alert('API Key Saved & SDK Loaded');
+    }
+
+    function initGoogleSDK(key) {
+      if (window.google && window.google.maps) return;
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        const map = new google.maps.Map(document.getElementById('map'));
+        placesService = new google.maps.places.PlacesService(map);
+        document.getElementById('statusText').textContent = 'API Connected';
+      };
+      document.head.appendChild(script);
+    }
+
+    function runScoutScan() {
+      if (!placesService) return alert('Please save a valid Google Places API Key first.');
+      
+      const category = document.getElementById('queryInput').value || 'Auto Repair';
+      const location = document.getElementById('locationInput').value || 'Rexburg, ID';
+      const filter = document.getElementById('filterSelect').value;
+      const statusText = document.getElementById('statusText');
+
+      statusText.textContent = 'Querying Google Places...';
+      document.getElementById('resultsTable').innerHTML = `<tr><td colspan="4" class="p-6 text-center text-stone-400 text-xs"><i class="fa-solid fa-spinner animate-spin"></i> Scanning live business records...</td></tr>`;
+
+      const request = { query: `${category} in ${location}` };
+
+      placesService.textSearch(request, (results, status) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
+          statusText.textContent = 'Search failed';
+          document.getElementById('resultsTable').innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-400 text-xs">API Error or No Results Found</td></tr>`;
+          return;
+        }
+
+        statusText.textContent = `Processing details for ${results.length} locations...`;
+        
+        let processedCount = 0;
+        let finalResults = [];
+
+        results.forEach((place) => {
+          // Fetch full details to check for website and phone
+          placesService.getDetails({ placeId: place.place_id, fields: ['name', 'formatted_address', 'formatted_phone_number', 'website', 'rating', 'user_ratings_total'] }, (details, detailStatus) => {
+            processedCount++;
+            if (detailStatus === google.maps.places.PlacesServiceStatus.OK && details) {
+              const hasWebsite = !!details.website;
+              if (filter === 'all' || (filter === 'no-website' && !hasWebsite)) {
+                finalResults.push(details);
+              }
+            }
+
+            if (processedCount === results.length) {
+              renderResults(finalResults);
+              statusText.textContent = `Scan Complete (${finalResults.length} matches)`;
+            }
+          });
+        });
+      });
+    }
+
+    function renderResults(list) {
+      const tbody = document.getElementById('resultsTable');
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-stone-500 text-xs">No businesses matched your target criteria.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map((item, idx) => `
+        <tr class="hover:bg-stone-800/40 border-b border-stone-800/40">
+          <td class="p-3">
+            <div class="font-bold text-stone-200">${item.name}</div>
+            <div class="text-xs text-stone-400">${item.formatted_address || 'No address'}</div>
+            <div class="text-xs text-stone-500">${item.formatted_phone_number || 'No phone'}</div>
+          </td>
+          <td class="p-3 text-xs">
+            <span class="text-amber-400 font-bold"><i class="fa-solid fa-star"></i> ${item.rating || 'N/A'}</span>
+            <span class="text-stone-500">(${item.user_ratings_total || 0})</span>
+          </td>
+          <td class="p-3">
+            ${item.website ? 
+              `<a href="${item.website}" target="_blank" class="text-xs bg-stone-800 text-stone-300 px-2 py-1 rounded hover:underline"><i class="fa-solid fa-link"></i> Website Exists</a>` : 
+              `<span class="text-xs bg-red-950 text-red-400 border border-red-800/80 px-2 py-1 rounded font-bold"><i class="fa-solid fa-triangle-exclamation"></i> NO WEBSITE DETECTED</span>`
+            }
+          </td>
+          <td class="p-3">
+            <button onclick="saveToPipeline('${encodeURIComponent(JSON.stringify(item))}')" class="bg-amber-500/20 hover:bg-amber-500 text-amber-400 hover:text-stone-950 text-xs px-2.5 py-1.5 rounded font-semibold transition border border-amber-500/40">
+              + Add Lead
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function saveToPipeline(encodedData) {
+      const data = JSON.parse(decodeURIComponent(encodedData));
+      if (pipeline.some(p => p.name === data.name)) return alert('Prospect already in pipeline');
+
+      pipeline.push({
+        id: Date.now(),
+        name: data.name,
+        phone: data.formatted_phone_number || 'N/A',
+        address: data.formatted_address || 'N/A',
+        hasWebsite: !!data.website,
+        conceptUrl: 'https://m1543l-byui.github.io/rexburg-auto-repair-website-concept/',
+        status: 'Uncontacted'
+      });
+
+      localStorage.setItem('scout_pipeline', JSON.stringify(pipeline));
+      renderPipeline();
+    }
+
+    function renderPipeline() {
+      const container = document.getElementById('pipelineContainer');
+      document.getElementById('pipelineCount').textContent = `${pipeline.length} Prospects Saved`;
+
+      if (pipeline.length === 0) {
+        container.innerHTML = `<div class="col-span-2 p-6 bg-stone-900/40 rounded-xl border border-stone-800 text-center text-xs text-stone-500">No active leads saved in your sales pipeline yet.</div>`;
+        return;
+      }
+
+      container.innerHTML = pipeline.map((lead, i) => `
+        <div class="bg-stone-900 p-4 rounded-xl border border-stone-800 space-y-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="font-bold text-stone-100">${lead.name}</h3>
+              <p class="text-xs text-stone-400">${lead.phone} • ${lead.address}</p>
+            </div>
+            <button onclick="deleteLead(${i})" class="text-stone-600 hover:text-red-400 text-xs"><i class="fa-solid fa-trash"></i></button>
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-[10px] uppercase font-bold text-stone-500 tracking-wider">Target Preview Concept URL</label>
+            <input type="url" value="${lead.conceptUrl}" onchange="updateConceptUrl(${i}, this.value)" class="w-full bg-stone-950 text-xs p-2 rounded border border-stone-800 focus:outline-none focus:border-amber-500 text-amber-400">
+          </div>
+
+          <div class="flex justify-between items-center pt-2">
+            <button onclick="cycleStatus(${i})" class="text-xs px-2.5 py-1 rounded font-bold transition ${
+              lead.status === 'Closed' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
+              lead.status === 'Pitch Sent' ? 'bg-sky-950 text-sky-400 border border-sky-800' :
+              'bg-stone-800 text-stone-300 border border-stone-700'
+            }">${lead.status}</button>
+
+            <a href="sms:${lead.phone}?body=Hi ${encodeURIComponent(lead.name)}, I noticed your business doesn't have a mobile web app set up on Google Maps. I built a preview for you here: ${encodeURIComponent(lead.conceptUrl)}" class="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs px-3 py-1.5 rounded flex items-center gap-1.5">
+              <i class="fa-solid fa-comment"></i> Text Pitch
+            </a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateConceptUrl(index, value) {
+      pipeline[index].conceptUrl = value;
+      localStorage.setItem('scout_pipeline', JSON.stringify(pipeline));
+    }
+
+    function cycleStatus(index) {
+      const states = ['Uncontacted', 'Pitch Sent', 'Closed'];
+      pipeline[index].status = states[(states.indexOf(pipeline[index].status) + 1) % states.length];
+      localStorage.setItem('scout_pipeline', JSON.stringify(pipeline));
+      renderPipeline();
+    }
+
+    function deleteLead(index) {
+      pipeline.splice(index, 1);
+      localStorage.setItem('scout_pipeline', JSON.stringify(pipeline));
+      renderPipeline();
+    }
+  </script>
+</body>
+</html>
